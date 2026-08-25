@@ -1,0 +1,59 @@
+name: IaC Application Validation
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+
+  validate:
+
+    name: Validate Application
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate Python syntax
+        run: |
+          echo "Checking Python application..."
+          python -m py_compile app.py
+          echo "Python validation successful"
+
+      - name: Validate Dockerfile
+        run: |
+          echo "Checking Dockerfile..."
+          test -f Dockerfile
+          grep -q "^FROM" Dockerfile
+          echo "Dockerfile validation successful"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t github-demo-app:${{ github.sha }} \
+            .
+
+      - name: Validation summary
+        run: |
+          echo "===================================="
+          echo " GitHub Integration Validation"
+          echo "===================================="
+          echo "Repository : ${{ github.repository }}"
+          echo "Branch     : ${{ github.ref_name }}"
+          echo "Commit     : ${{ github.sha }}"
+          echo "Status     : VALIDATED"
