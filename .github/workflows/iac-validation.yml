@@ -1,4 +1,4 @@
-name: IaC Application Validation
+name: GitHub IaC Integration
 
 on:
   push:
@@ -29,18 +29,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Validate Python syntax
+      - name: Validate Python
         run: |
-          echo "Checking Python application..."
           python -m py_compile app.py
-          echo "Python validation successful"
-
-      - name: Validate Dockerfile
-        run: |
-          echo "Checking Dockerfile..."
-          test -f Dockerfile
-          grep -q "^FROM" Dockerfile
-          echo "Dockerfile validation successful"
+          echo "Python validation: OK"
 
       - name: Build Docker image
         run: |
@@ -48,12 +40,66 @@ jobs:
             -t github-demo-app:${{ github.sha }} \
             .
 
-      - name: Validation summary
+      - name: GitHub validation
+        run: |
+          echo "Repository validated successfully"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+
+
+  infrastructure-integration:
+
+    name: Validate IaC Infrastructure Integration
+
+    needs: validate
+
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Runner information
         run: |
           echo "===================================="
-          echo " GitHub Integration Validation"
+          echo " GitHub -> IaC Infrastructure"
           echo "===================================="
-          echo "Repository : ${{ github.repository }}"
-          echo "Branch     : ${{ github.ref_name }}"
-          echo "Commit     : ${{ github.sha }}"
-          echo "Status     : VALIDATED"
+
+          echo "Runner:"
+          hostname
+
+          echo
+          echo "User:"
+          whoami
+
+          echo
+          echo "Repository:"
+          echo "${{ github.repository }}"
+
+          echo
+          echo "Branch:"
+          echo "${{ github.ref_name }}"
+
+          echo
+          echo "Commit:"
+          echo "${{ github.sha }}"
+
+      - name: Validate portal
+        run: |
+          curl --fail \
+            --max-time 10 \
+            http://127.0.0.1:8080/api/status
+
+          echo
+          echo "IaC Portal: REACHABLE"
+
+      - name: Integration summary
+        run: |
+          echo "===================================="
+          echo " GitHub Integration VALIDATED"
+          echo "===================================="
+          echo "GitHub Actions       : OK"
+          echo "Self-hosted Runner   : OK"
+          echo "IaC Portal           : OK"
